@@ -26,6 +26,7 @@ The program is currently in beta.
 - [ ] ability for the user to alter program settings for audio/video activity detectors
 - [ ] add timestamp to playback controls
 - [ ] make sound processing not block
+- [ ] playback position indicator icon shouldn't be clipped out of the window when on the far left
 - [ ] reduce visual artefacts on video player (garbage at the edges, flicker, etc.)
 - [ ] playback position is stored as u32, so might overflow for long videos
 - [ ] save window size on exit and restore it on load
