@@ -29,7 +29,8 @@ SOURCES +=  src/main.cpp \
     src/audio/audio_file.cpp \
     src/gui_qt/qt_main_window.cpp \
     src/messager/messager.cpp \
-    src/gui_qt/qt_activity_strip.cpp
+    src/gui_qt/qt_activity_strip.cpp \
+    src/kiss_fft/kiss_fft.c
 
 HEADERS  +=  src/common.h \
     src/types.h \
@@ -40,7 +41,10 @@ HEADERS  +=  src/common.h \
     src/audio/audio_file.h \
     src/gui_qt/qt_main_window.h \
     src/messager/messager.h \
-    src/gui_qt/qt_activity_strip.h
+    src/gui_qt/qt_activity_strip.h \
+    src/kiss_fft/kissfft.hh \
+    src/kiss_fft/kiss_fft.h \
+    src/kiss_fft/_kiss_fft_guts.h
 
 FORMS    += \
     src/gui_qt/qt_main_window.ui

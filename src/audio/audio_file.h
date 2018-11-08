@@ -26,6 +26,16 @@ public:
         return this->numSamples;
     }
 
+    uint sample_rate(void) const
+    {
+        return this->sampleRate;
+    }
+
+    uint duration_ms(void) const
+    {
+        return this->durationMs;
+    }
+
     short sample_at(const uint offs) const
     {
         k_assert(offs < numSamples, "Accessing audio data out of bounds.");

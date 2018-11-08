@@ -41,9 +41,9 @@ private:
     QVector<QLabel*> messagePopups;
 
     // For how long message messages stay visible.
-    const uint messageTimeoutMs = 4500;
+    const uint messageTimeoutMs = 5000;
 
-    // The maximum number of message we'll show at a time. Older ones get pushed out.
+    // The maximum number of message we'll show at a time. Older ones get destroyed.
     const uint maxNumMessages = 5;
 };
 

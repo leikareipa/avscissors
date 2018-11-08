@@ -119,7 +119,7 @@ void messager_c::craft_message_label(QLabel *const label, const QString &message
 {
     label->setStyleSheet("padding: 25px;"
                          "background-color: #A34848;"
-                         "color: #E6DCDC;"
+                         "color: #EDE1E1;"
                          "border: 1px solid #101010;"
                          "border-bottom: 3px solid #101010;"
                          "border-radius: 0px;");

@@ -55,6 +55,8 @@ private:
 
     bool frames_differ(const cv::Mat &frame1, const cv::Mat &frame2, const u8 threshold);
 
+    void extract_audio(void);
+
     // For each frame in the video, whether there's visual or acoustic activity.
     QVector<activity_type_e> videoFrameIsActive;
     QVector<activity_type_e> audioFrameIsActive;
@@ -72,8 +74,6 @@ private:
 
     // The video's audio as a separate WAV data object.
     audio_file_c *audio = nullptr;
-
-    void extract_audio(void);
 };
 
 #endif

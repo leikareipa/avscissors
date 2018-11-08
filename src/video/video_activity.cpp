@@ -19,6 +19,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "../../src/kiss_fft/kiss_fft.h"
+
 #include "../../src/video/video_activity.h"
 #include "../../src/messager/messager.h"
 #include "../../src/video/video_info.h"
@@ -162,7 +164,7 @@ void video_activity_c::extract_audio(void)
 /// TODO. Cleanup.
 void video_activity_c::mark_audio_frame_activity(void)
 {
-    const uint timeGranularity = (this->videoInfo.num_frames() / TIME_GRANULARITY_DIVISOR);
+    const uint timeGranularity = ((this->videoInfo.num_frames() / TIME_GRANULARITY_DIVISOR) - 1);
 
     this->extract_audio();
     if (!this->has_valid_audio())
@@ -174,58 +176,109 @@ void video_activity_c::mark_audio_frame_activity(void)
     k_assert(this->has_valid_audio(), "Was asked to mark audio activity, but the audio was not valid.")
     k_assert((this->videoInfo.num_frames() > 0), "Asked to mark audio activity, but there are no frames to mark it for.");
 
-    // Get the average and maximum amplitudes in the audio's samples.
-    real avgAmplitude = 0;
-    uint maxAmplitude = 0;
+    // Spectral analysis to find which frames contain acoustic activity.
     {
-        i64 sumAmplitude = 0;
+        const uint fftWindowLenMs = 5; /// FIXME: Is 5 ms a good window length? When isn't it?
+        const uint fftNumSamples = (fftWindowLenMs / 1000.0) * this->audio->sample_rate();
 
-        for (uint i = 0; i < this->audio->num_samples(); i++)
+        // The Hz range outside of which we ignore sounds.
+        const uint minHz = (fftNumSamples * (200.0 / (this->audio->sample_rate() / 2.0)) / 2.0);
+        const uint maxHz = (fftNumSamples * (18000.0 / (this->audio->sample_rate() / 2.0)) / 2.0);
+
+        kiss_fft_cfg cfg = kiss_fft_alloc(fftNumSamples, 0, NULL, NULL);
+        kiss_fft_cpx *fftIn = new kiss_fft_cpx[fftNumSamples];
+        kiss_fft_cpx *fftOut = new kiss_fft_cpx[fftNumSamples];
+        kiss_fft_cpx *fftPre = new kiss_fft_cpx[fftNumSamples];
+
+        // For each frame of video, take a window of n samples, extract its spectrum,
+        // and figure out whether the spectrum indicates acoustic activity or just
+        // background noise.
+        for (uint l = 0; l < this->videoInfo.num_frames(); l++)
         {
-            const auto &sample = this->audio->sample_at(i);
-
-            sumAmplitude += sample;
-
-            if (abs(sample) > maxAmplitude)
+            // Copy the window's samples into the FFT buffer.
+            const real msStart = ((1000.0 / this->videoInfo.frame_rate()) * l);
+            const uint sampleStart = (this->audio->sample_rate() * (msStart / 1000.0));
+            if ((sampleStart + fftNumSamples) >= this->audio->num_samples())
             {
-                maxAmplitude = abs(sample);
+                goto done;
             }
-        }
-
-        avgAmplitude = (sumAmplitude / (real)this->audio->num_samples());
-    }
-
-    // Mark the frames based on whether audio corresponding to each frame is
-    // exceeding the average amplitude across the whole audio track.
-    /// Temp hack. Could instead use quartiles or something.
-    const real thresholdAmplitude = ((maxAmplitude - avgAmplitude) * 0.001);
-    {
-        for (uint i = 0; i < this->videoInfo.num_frames(); i++)
-        {
-            const uint sampleOffs = ((this->audio->num_samples() / (real)this->videoInfo.num_frames()) * i);
-            const bool loudSample = bool(fabs(this->audio->sample_at(sampleOffs)) > fabs(thresholdAmplitude));
-
-            this->audioFrameIsActive[i] = loudSample? activity_type_e::Active
-                                                    : activity_type_e::Inactive;
-
-            if (loudSample)
+            for (uint i = 0; i < fftNumSamples; i++)
             {
-                const uint numFramesToSkip = ((i + timeGranularity) > this->videoInfo.num_frames())? (this->videoInfo.num_frames() - i)
-                                                                                                   : timeGranularity;
+                // Convert short to real in range -1..1.
+                fftIn[i].r = this->audio->sample_at(sampleStart+i) * real(1.0 / std::numeric_limits<short>::max());
+                fftIn[i].i = fftIn[i].r;
 
-                for (uint p = 0; p < numFramesToSkip; (p++, i++))
+                fftOut[i].r = fftOut[i].i = 0;
+                fftPre[i].r = fftPre[i].i = 0;
+            }
+
+            // Apply pre-emphasis.
+            fftPre[0].r = fftPre[0].i = 0;
+            for (uint i = 1; i < fftNumSamples; i++)
+            {
+                double a = 0.95;
+                fftPre[i].r = fftIn[i].r - a * fftIn[i-1].r;
+                fftPre[i].i = fftPre[i].r;
+            }
+
+            // Apply a window function.
+            for (uint i = 0; i < fftNumSamples; i++)
+            {
+                real hann = 0.5 * (1 - cos((M_PI * 2 * i) / (fftNumSamples - 1)));
+                fftPre[i].r *= hann;
+                fftPre[i].i = fftPre[i].r;
+            }
+
+            // Apply the FFT, and convert the resulting complex values to magnitudes.
+            kiss_fft(cfg, fftPre, fftOut);
+            for (uint i = 1; i < (fftNumSamples / 2); i++)
+            {
+                fftOut[i].r = sqrtf(powf(fftOut[i].r, 2.0) + powf(fftOut[i].i, 2.0));
+            }
+
+            // Decide whether the spectrum of magnitudes indicates acoustic activity
+            // at the current frame of video.
+            {
+                bool loudSample = false;
+                for (uint i = minHz; i < maxHz; i++)
                 {
-                    this->audioFrameIsActive[i] = activity_type_e::Active;
+                    /// FIXME: Is this a good threshold? When isn't it?
+                    const real threshold = 0.05;
+
+                    if (fftOut[i].r > threshold)
+                    {
+                        loudSample = true;
+                        break;
+                    }
+                }
+
+                this->audioFrameIsActive[l] = loudSample? activity_type_e::Active
+                                                        : activity_type_e::Inactive;
+
+                if (loudSample)
+                {
+                    const uint numFramesToSkip = ((l + timeGranularity) > this->videoInfo.num_frames())? (this->videoInfo.num_frames() - l)
+                                                                                                       : timeGranularity;
+
+                    for (uint p = 0; p < numFramesToSkip; p++)
+                    {
+                        this->audioFrameIsActive[++l] = activity_type_e::Active;
+                    }
                 }
             }
 
             // Periodically check to make sure the user doesn't want us to stop processing.
-            if (((i % 200) == 0) &&
-                this->workerThreadsShouldStop)
+            if (this->workerThreadsShouldStop)
             {
                 return;
             }
         }
+
+        done:
+        delete [] fftIn;
+        delete [] fftOut;
+        delete [] fftPre;
+        free(cfg);
     }
 
     return;
@@ -262,7 +315,7 @@ bool video_activity_c::frames_differ(const cv::Mat &frame1, const cv::Mat &frame
 //
 void video_activity_c::mark_video_frame_activity(void)
 {
-    const uint timeGranularity = (this->videoInfo.num_frames() / TIME_GRANULARITY_DIVISOR);
+    const uint timeGranularity = ((this->videoInfo.num_frames() / TIME_GRANULARITY_DIVISOR) - 1);
 
     cv::VideoCapture video(this->videoInfo.file_name().toStdString());
     k_assert(video.isOpened(), "Failed to open the video file in OpenCV.");
@@ -282,16 +335,29 @@ void video_activity_c::mark_video_frame_activity(void)
             prevFrame = thisFrame.clone();
             video >> thisFrame;
 
-            k_assert((thisFrame.channels() == 3),
-                     "Expected three colors channels in the video frame.");
-            k_assert((thisFrame.channels() == prevFrame.channels()),
-                     "Found mismatched frames while reading the video.");
-            k_assert((thisFrame.total() == size_t(this->videoInfo.width() * this->videoInfo.height())),
-                     "Encountered a frame with an unexpected size.");
-            k_assert((thisFrame.total() == prevFrame.total()),
-                     "Found mismatched frames while reading the video.");
+            if ((thisFrame.channels() != 3) ||
+                (thisFrame.channels() != prevFrame.channels()) ||
+                (thisFrame.total() != size_t(this->videoInfo.width() * this->videoInfo.height())) ||
+                (thisFrame.total() != prevFrame.total()))
+            {
+                emit message_to_user("Couldn't fully process this video."); /// FIXME: Make this message more informational.
+                return;
+            }
 
-            this->videoFrameIsActive[i] = frames_differ(thisFrame, prevFrame, 30)? activity_type_e::Active
+            /// FIXME: These duplicate the conditional test above, since asserting
+            /// out of this worker thread can crash the program.
+            #if 0
+                k_assert((thisFrame.channels() == 3),
+                         "Expected three colors channels in the video frame.");
+                k_assert((thisFrame.channels() == prevFrame.channels()),
+                         "Found mismatched frames while reading the video.");
+                k_assert((thisFrame.total() == size_t(this->videoInfo.width() * this->videoInfo.height())),
+                         "Encountered a frame with an unexpected size.");
+                k_assert((thisFrame.total() == prevFrame.total()),
+                         "Found mismatched frames while reading the video.");
+            #endif
+
+            this->videoFrameIsActive[i] = frames_differ(thisFrame, prevFrame, 100)? activity_type_e::Active
                                                                                  : activity_type_e::Inactive;
 
             // If we get an active frame, assume (for performance reasons) that the
@@ -301,9 +367,9 @@ void video_activity_c::mark_video_frame_activity(void)
                 const uint numFramesToSkip = ((i + timeGranularity) > this->videoInfo.num_frames())? (this->videoInfo.num_frames() - i)
                                                                                                    : timeGranularity;
 
-                for (uint p = 0; p < numFramesToSkip; (p++, i++))
+                for (uint p = 0; p < numFramesToSkip; p++)
                 {
-                    this->videoFrameIsActive[i] = activity_type_e::Active;
+                    this->videoFrameIsActive[++i] = activity_type_e::Active;
                 }
 
                 // Seek to the next frame we want to capture, and grab it, so that it
