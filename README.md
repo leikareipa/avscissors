@@ -1,5 +1,5 @@
 # AV Scissors
-AV Scissors is a Qt-based video player whose timeline highlights the parts of the video that contain activity, like movement or noises. Useful for pet surveillance and so on. Find out more in the readme file included with the binary distribution of AV Scissors, available from [Tarpeeksi Hyvae Soft's website](http://tarpeeksihyvaesoft.com/soft)
+AV Scissors is a Qt-based video player whose timeline highlights the parts of the video that contain activity, like movement or noises. Useful for pet surveillance and so on.
 
 This repo contains the source code of AV Scissors; it's compilable on Linux, and probabaly Windows, etc. Note that the repo tracks my local one with low granularity only.
 
