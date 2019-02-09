@@ -34,7 +34,7 @@ ActivityStrip::ActivityStrip(QWidget *parent) : QLabel(parent)
     // Require that the widget always be at least this size. In practice, the
     // program's layout will probably cause the strip to always be no larger,
     // either, so this is effectively a fixed size.
-    this->resize(this->width(), 45);
+    this->resize(this->width(), 35);
     this->setMinimumHeight(this->height());
 
     /// Kludge. Without this, can't resize window properly horizontally.

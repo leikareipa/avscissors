@@ -118,11 +118,10 @@ void messager_c::new_message(const QString &message)
 void messager_c::craft_message_label(QLabel *const label, const QString &message)
 {
     label->setStyleSheet("padding: 25px;"
-                         "background-color: #A34848;"
-                         "color: #EDE1E1;"
-                         "border: 1px solid #101010;"
-                         "border-bottom: 3px solid #101010;"
-                         "border-radius: 0px;");
+                         "background-color: #f5f5c0;"
+                         "color: #202015;"
+                         "border: 1px solid #000000;"
+                         "border-radius: 3px;");
     label->setText(message);
     label->adjustSize();
 

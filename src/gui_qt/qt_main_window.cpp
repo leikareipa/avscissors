@@ -38,12 +38,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     messager = new messager_c(ui->centralWidget);
 
+    // Style the main window.
+    {
+        ui->widget_videoCanvas->setStyleSheet("background-color: #424242;");
+    }
+
     // Style and initialize the playback controls area, including activity strips.
     {
-        ui->widget_activityStrips->setStyleSheet("background-color: #404040;");
+        ui->widget_activityStrips->setStyleSheet("background-color: #4f4f4f;");
 
-        ui->activityStrip_videoActivity->set_colors(QColor("#98CC85"), QColor("#737371"), QColor("#424243"));
-        ui->activityStrip_audioActivity->set_colors(QColor("mediumseagreen"), QColor("#656565"), QColor("#424243"));
+        ui->activityStrip_videoActivity->set_colors(QColor("#98CC85"), QColor("#737371"), QColor("#4f4f4f"));
+        ui->activityStrip_audioActivity->set_colors(QColor("mediumseagreen"), QColor("#656565"), QColor("#4f4f4f"));
 
         this->mouseOverIndicator = new QLabel(this);
         this->mouseOverIndicator->setStyleSheet("background-color: transparent;");

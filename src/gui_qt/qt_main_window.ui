@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1058</width>
-    <height>692</height>
+    <width>983</width>
+    <height>608</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -103,7 +103,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1058</width>
+     <width>983</width>
      <height>22</height>
     </rect>
    </property>

@@ -34,11 +34,11 @@ video_player_c::video_player_c(QWidget *const parent) :
 
     this->noVideoText = new QLabel;
     this->noVideoText->setStyleSheet("padding: 70px;"
-                                     "color: #7f7f7f;"
+                                     "color: #a0a0a0;"
                                      "background-color: transparent;"
-                                     "border: 2px dashed #505050;"
-                                     "border-radius: 11px;");
-    this->noVideoText->setText("No video file loaded.<br>Drag one here to start.");
+                                     "border: 2px dotted #606060;"
+                                     "border-radius: 6px;");
+    this->noVideoText->setText("Drag a video file here to start.");
     this->noVideoText->setAlignment(Qt::AlignHCenter);
     this->noVideoText->adjustSize();
     this->noVideoText->setParent(parent);
@@ -52,7 +52,7 @@ video_player_c::video_player_c(QWidget *const parent) :
         this->playbackIcon->adjustSize();
         this->playbackIcon->setAttribute(Qt::WA_TransparentForMouseEvents);
         this->playbackIcon->setVisible(false);
-        this->playbackIcon->resize(40, 41);
+        this->playbackIcon->resize(31, 32);
 
         // Draw the icon graphics.
         {
@@ -75,7 +75,7 @@ video_player_c::video_player_c(QWidget *const parent) :
                 triangle << QPoint(0, (this->playbackIcon->height() - 1));
                 triangle << QPoint((this->playbackIcon->width() - 2), (this->playbackIcon->height() / 2));
 
-                painterPlaying.setPen(QColor("#fafaff"));
+                painterPlaying.setPen(QColor("#ffffff"));
                 painterPlaying.setBrush(painterPlaying.pen().color());
                 painterPlaying.drawPolygon(triangle);
             }
@@ -160,10 +160,6 @@ void video_player_c::fit_player_to_parent()
             newPlayerSize = QSize(parentWidget->width(),
                                   (parentWidget->width() * aspectRatio));
         }
-
-        // Have the player be slightly smaller than its parent.
-        newPlayerSize.setWidth(newPlayerSize.width() * 0.99);
-        newPlayerSize.setHeight(newPlayerSize.height() * 0.99);
 
         this->videoWidget->move(((parentWidget->width() / 2) - (newPlayerSize.width() / 2)),
                                 ((parentWidget->height() / 2) - (newPlayerSize.height() / 2)));
