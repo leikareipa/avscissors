@@ -18,8 +18,7 @@ UI_DIR = generated_files
 
 INCLUDEPATH += $$PWD/src/gui_qt
 
-# For OpenCV.
-LIBS += -lopencv_core -lopencv_imgproc -lopencv_highgui
+LIBS += -lopencv_world
 
 SOURCES +=  src/main.cpp \
     src/video/video_activity.cpp \

@@ -8,7 +8,8 @@
  */
 
 #include <QDebug>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
 #include "../../src/messager/messager.h"
 #include "../../src/audio/audio_file.h"
 #include "../../src/video/video_info.h"
